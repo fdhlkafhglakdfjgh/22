@@ -1,0 +1,146 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Globe</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #000;
+            overflow: hidden;
+        }
+        #canvas {
+            display: block;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="startRotation">Запустить анимацию</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+
+        let scene, camera, renderer, controls;
+        let globe, starField;
+        let textures = [];
+        const textureUrls = [
+            'https://drive.google.com/uc?id=1mOroZGiu13jptKXGLbLHdy0K4cVFRWS-',
+            'https://drive.google.com/uc?id=1H4bz1DfGbGc49ilwKJu8hD_G3PNEc7jK',
+            'https://drive.google.com/uc?id=1QYWF5Sl2B51BreUtW9TCtoLFYnposk0L'
+        ];
+
+        function init() {
+            try {
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+
+                controls = new OrbitControls(camera, renderer.domElement);
+                camera.position.z = 5;
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+
+                createGlobe();
+                createStarField();
+                loadTextures();
+
+                window.addEventListener('resize', onWindowResize);
+                animate();
+            } catch (error) {
+                console.error('Ошибка инициализации:', error);
+                alert('Произошла ошибка при загрузке приложения. Проверьте консоль.');
+            }
+        }
+
+        function createGlobe() {
+            try {
+                const geometry = new THREE.SphereGeometry(2, 32, 32);
+                const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                globe = new THREE.Mesh(geometry, material);
+                scene.add(globe);
+            } catch (error) {
+                console.error('Ошибка создания глобуса:', error);
+            }
+        }
+
+        function createStarField() {
+            try {
+                const starGeometry = new THREE.BufferGeometry();
+                const starMaterial = new THREE.PointsMaterial({ color: 0xFFFFFF, size: 0.05 });
+                const starVertices = [];
+                for (let i = 0; i < 1000; i++) {
+                    starVertices.push((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100);
+                }
+                starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+                starField = new THREE.Points(starGeometry, starMaterial);
+                scene.add(starField);
+            } catch (error) {
+                console.error('Ошибка создания звёздного поля:', error);
+            }
+        }
+
+        function loadTextures() {
+            try {
+                const loader = new THREE.TextureLoader();
+                textureUrls.forEach((url, index) => {
+                    loader.load(url, (texture) => {
+                        textures[index] = texture;
+                        if (index === 0) {
+                            globe.material.map = texture;
+                            globe.material.needsUpdate = true;
+                        }
+                    }, undefined, (error) => {
+                        console.error(`Ошибка загрузки текстуры (${url}):`, error);
+                    });
+                });
+            } catch (error) {
+                console.error('Ошибка загрузки текстур:', error);
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            starField.rotation.y += 0.0005;
+            renderer.render(scene, camera);
+        }
+
+        init();
+        document.getElementById('startRotation').addEventListener('click', () => {
+            console.log('Анимация запущена');
+        });
+    </script>
+</body>
+</html>
